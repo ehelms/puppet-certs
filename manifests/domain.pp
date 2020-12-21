@@ -1,0 +1,77 @@
+# Certs configurations for Apache
+class certs::domain (
+  $hostname             = $certs::node_fqdn,
+  $cname                = $certs::cname,
+  $generate             = $certs::generate,
+  $regenerate           = $certs::regenerate,
+  $deploy               = $certs::deploy,
+  $pki_dir              = $certs::foreman_pki_dir,
+  $server_cert          = $certs::server_cert,
+  $server_key           = $certs::server_key,
+  $server_cert_req      = $certs::server_cert_req,
+  $country              = $certs::country,
+  $state                = $certs::state,
+  $city                 = $certs::city,
+  $org                  = $certs::org,
+  $org_unit             = $certs::org_unit,
+  $expiration           = $certs::expiration,
+  $default_ca           = $certs::default_ca,
+  $ca_key_password_file = $certs::ca_key_password_file,
+  $group                = $certs::group,
+) inherits certs {
+
+  $cert_name = $hostname
+  $cert = "${foreman_pki_dir}/${hostname}/${hostname}.crt"
+  $key  = "${foreman_pki_dir}/${hostname}/${hostname}.key"
+  $ca_cert = $certs::katello_server_ca_cert
+
+  if $server_cert {
+    cert { $cert_name:
+      ensure         => present,
+      hostname       => $hostname,
+      cname          => $cname,
+      generate       => $generate,
+      deploy         => $deploy,
+      regenerate     => $regenerate,
+      custom_pubkey  => $server_cert,
+      custom_privkey => $server_key,
+      custom_req     => $server_cert_req,
+    }
+  } else {
+    cert { $cert_name:
+      ensure        => present,
+      hostname      => $hostname,
+      cname         => $cname,
+      country       => $country,
+      state         => $state,
+      city          => $city,
+      org           => $org,
+      org_unit      => $org_unit,
+      expiration    => $expiration,
+      ca            => $default_ca,
+      generate      => $generate,
+      regenerate    => $regenerate,
+      deploy        => $deploy,
+      password_file => $ca_key_password_file,
+    }
+  }
+
+  if $deploy {
+
+    file { "${certs::foreman_pki_dir}/${hostname}":
+      ensure => directory,
+      owner  => 'root',
+      group  => $group,
+      mode   => '0750',
+    } ~>
+    certs::keypair { 'domain':
+      key_pair   => Cert[$cert_name],
+      key_file   => $key,
+      manage_key => true,
+      key_owner  => 'root',
+      key_group  => $group,
+      key_mode   => '0440',
+      cert_file  => $cert,
+    }
+  }
+}

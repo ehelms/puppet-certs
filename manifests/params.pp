@@ -2,6 +2,8 @@
 class certs::params {
 
   $pki_dir = '/etc/pki/katello'
+  $foreman_pki_dir = '/etc/foreman/pki'
+
   $node_fqdn = $facts['networking']['fqdn']
 
   $ca_common_name = $facts['networking']['fqdn']  # we need fqdn as CA common name as candlepin uses it as a ssl cert

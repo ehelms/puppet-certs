@@ -11,6 +11,17 @@ class certs::config (
     mode   => '0755',
   }
 
+  ensure_resource('file', '/etc/foreman', {
+    ensure => directory,
+  })
+
+  ensure_resource('file', $certs::foreman_pki_dir, {
+    ensure => directory,
+    owner  => 'root',
+    group  => $group,
+    mode   => '0755',
+  })
+
   file { "${pki_dir}/certs":
     ensure => directory,
     owner  => 'root',
