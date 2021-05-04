@@ -76,12 +76,14 @@ class certs::qpid (
       path        => '/usr/bin',
       refreshonly => true,
       logoutput   => 'on_failure',
+      require     => Nssdb[$nss_db_dir],
     } ~>
     exec { 'add-private-key-to-nss-db':
       command     => "pk12util -i '${pfx_path}' -d '${nss_db_dir}' -w '${nss_db_password_file}' -k '${nss_db_password_file}'",
       path        => '/usr/bin',
       refreshonly => true,
       logoutput   => 'on_failure',
+      require     => Nssdb[$nss_db_dir],
     }
   }
 }

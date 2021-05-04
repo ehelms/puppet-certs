@@ -34,14 +34,14 @@ describe 'certs' do
 
     describe file(nssdb_password_file) do
       it { should be_file }
-      it { should be_mode 640 }
+      it { should be_mode 440 }
       it { should be_owned_by 'root' }
       it { should be_grouped_into 'qpidd' }
     end
 
     describe file(nssdb_dir) do
       it { should be_directory }
-      it { should be_mode 755 }
+      it { should be_mode 750 }
       it { should be_owned_by 'root' }
       it { should be_grouped_into 'qpidd' }
     end
