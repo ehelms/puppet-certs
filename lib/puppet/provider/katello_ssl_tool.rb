@@ -55,7 +55,10 @@ module Puppet::Provider::KatelloSslTool
     end
 
     def files_to_generate
-      [rpmfile]
+      [
+        "#{resource[:build_dir]}/#{resource[:hostname]}/#{File.basename(pubkey)}",
+        "#{resource[:build_dir]}/#{resource[:hostname]}/#{File.basename(privkey)}",
+      ]
     end
 
     def deploy?

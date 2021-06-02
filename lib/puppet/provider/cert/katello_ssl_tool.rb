@@ -9,8 +9,13 @@ Puppet::Type.type(:cert).provide(:katello_ssl_tool, :parent => Puppet::Provider:
               '--set-hostname', resource[:hostname],
               '--server-cert', File.basename(pubkey),
               '--server-cert-req', File.basename(req_file),
-              '--server-key', File.basename(privkey),
-              '--server-rpm', rpmfile_base_name ]
+              '--server-key', File.basename(privkey)]
+
+    if resource[:deploy]
+      args.concat(['--server-rpm', rpmfile_base_name])
+    else
+      args << '--no-rpm'
+    end
 
     if resource[:custom_pubkey]
       FileUtils.mkdir_p(build_path)
@@ -21,7 +26,7 @@ Puppet::Type.type(:cert).provide(:katello_ssl_tool, :parent => Puppet::Provider:
       else
         File.open(build_path(File.basename(req_file)), 'w') { |f| f.write('') }
       end
-      args << '--rpm-only'
+      args << '--rpm-only' if resource[:deploy]
     else
       resource[:common_name] ||= resource[:hostname]
       args.concat(['-p', "file:#{resource[:password_file]}",

@@ -73,4 +73,51 @@ describe 'certs::apache' do
       it { should be_installed }
     end
   end
+
+  context 'with deploy false' do
+    before(:context) do
+      on hosts, "rm -rf /root/ssl-build/#{fact('fqdn')} /etc/pki/katello /etc/pki/katello-certs-tools"
+      on hosts, "yum remove -y #{fact('fqdn')}-apache\*"
+    end
+
+    it_behaves_like 'an idempotent resource' do
+      let(:manifest) do
+        <<-PUPPET
+        class { '::certs::apache':
+          deploy => false,
+        }
+        PUPPET
+      end
+    end
+
+    describe file('/etc/pki/katello/certs/katello-apache.crt') do
+      it { should_not exist }
+    end
+
+    describe file('/etc/pki/katello-certs-tools/certs/katello-apache.crt') do
+      it { should_not exist }
+    end
+
+    describe x509_certificate("/root/ssl-build/#{fact('fqdn')}/#{fact('fqdn')}-apache.crt") do
+      it { should be_valid }
+      it { should have_purpose 'server' }
+      include_examples 'certificate issuer', "C = US, ST = North Carolina, L = Raleigh, O = Katello, OU = SomeOrgUnit, CN = #{fact('fqdn')}"
+      include_examples 'certificate subject', "C = US, ST = North Carolina, O = Katello, OU = SomeOrgUnit, CN = #{fact('fqdn')}"
+      its(:keylength) { should be >= 2048 }
+    end
+
+    describe x509_private_key("/root/ssl-build/#{fact('fqdn')}/#{fact('fqdn')}-apache.key") do
+      it { should_not be_encrypted }
+      it { should be_valid }
+      it { should have_matching_certificate("/root/ssl-build/#{fact('fqdn')}/#{fact('fqdn')}-apache.crt") }
+    end
+
+    describe package("#{fact('fqdn')}-apache") do
+      it { should_not be_installed }
+    end
+
+    describe file("/root/ssl-build/#{fact('fqdn')}/#{fact('fqdn')}-apache-1.0-1.noarch.rpm") do
+      it { should_not exist }
+    end
+  end
 end

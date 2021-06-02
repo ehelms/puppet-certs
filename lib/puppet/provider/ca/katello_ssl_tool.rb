@@ -6,28 +6,34 @@ Puppet::Type.type(:ca).provide(:katello_ssl_tool, :parent => Puppet::Provider::K
   protected
 
   def generate!
+    args = [
+      '--gen-ca',
+      '--dir', resource[:build_dir],
+      '--ca-cert-dir', target_path('certs'),
+      '--ca-cert', File.basename(pubkey),
+    ]
+
     if existing_pubkey
       FileUtils.mkdir_p(build_path)
       FileUtils.cp(existing_pubkey, build_path(File.basename(pubkey)))
-      katello_ssl_tool('--gen-ca',
-                       '--dir', resource[:build_dir],
-                       '--ca-cert-dir', target_path('certs'),
-                       '--ca-cert', File.basename(pubkey),
-                       '--ca-cert-rpm', rpmfile_base_name,
-                       '--rpm-only')
+      args << '--rpm-only' if resource[:deploy]
     else
-      katello_ssl_tool('--gen-ca',
-                       '--dir', resource[:build_dir],
-                       '-p', "file:#{resource[:password_file]}",
-                       '--force',
-                       '--ca-cert-dir', target_path('certs'),
-                       '--set-common-name', resource[:common_name],
-                       '--ca-cert', File.basename(pubkey),
-                       '--ca-key', File.basename(privkey),
-                       '--ca-cert-rpm', rpmfile_base_name,
-                       *common_args)
-
+      args.concat([
+        '--password', "file:#{resource[:password_file]}",
+        '--force',
+        '--set-common-name', resource[:common_name],
+        '--ca-key', File.basename(privkey),
+        *common_args
+      ])
     end
+
+    if resource[:deploy]
+      args.concat(['--ca-cert-rpm', rpmfile_base_name])
+    else
+      args << '--no-rpm'
+    end
+
+    katello_ssl_tool(*args)
     super
   end
 
@@ -51,6 +57,15 @@ Puppet::Type.type(:ca).provide(:katello_ssl_tool, :parent => Puppet::Provider::K
 
   def files_to_deploy
     [pubkey]
+  end
+
+  def files_to_generate
+    to_generate = [
+      "#{resource[:build_dir]}/#{File.basename(pubkey)}",
+    ]
+
+    to_generate << "#{resource[:build_dir]}/#{File.basename(privkey)}" unless existing_pubkey
+    to_generate
   end
 
   def self.privkey(name)
