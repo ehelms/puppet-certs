@@ -25,9 +25,6 @@ class certs::candlepin (
 ) inherits certs {
   include certs::foreman
 
-  $java_client_cert_name = 'java-client'
-  $artemis_alias = 'artemis-client'
-  $artemis_client_dn = $certs::foreman::client_dn
   $tomcat_cert_name = "${hostname}-tomcat"
 
   cert { $tomcat_cert_name:
@@ -47,82 +44,18 @@ class certs::candlepin (
     build_dir     => $certs::ssl_build_dir,
   }
 
-  $keystore_password = extlib::cache_data('foreman_cache_data', $keystore_password_file, extlib::random_password(32))
-  $truststore_password = extlib::cache_data('foreman_cache_data', $truststore_password_file, extlib::random_password(32))
-  $keystore_password_path = "${pki_dir}/${keystore_password_file}"
-  $truststore_password_path = "${pki_dir}/${truststore_password_file}"
-  $client_key = $certs::foreman::client_key
-  $client_cert = $certs::foreman::client_cert
-  $alias = 'candlepin-ca'
-
   if $deploy {
-    certs::keypair { $certs::default_ca_name:
+    class { 'certs::candlepin::deploy':
       source_dir        => $certs::ssl_build_dir,
-      key_file          => $ca_key,
-      key_owner         => $user,
-      key_group         => $group,
-      key_mode          => '0440',
-      cert_file         => $ca_cert,
-      cert_owner        => $user,
-      cert_group        => $group,
-      cert_mode         => '0440',
-      require           => $certs::default_ca,
-      key_password_file => $ca_key_password_file,
-      key_decrypt       => true,
-    }
-
-    file { $keystore_password_path:
-      ensure    => file,
-      content   => $keystore_password,
-      owner     => 'root',
-      group     => $group,
-      mode      => '0440',
-      show_diff => false,
-    }
-
-    keystore { $keystore:
-      ensure        => present,
-      password_file => $keystore_password_path,
-      owner         => 'root',
-      group         => $group,
-      mode          => '0640',
-    }
-
-    keystore_certificate { "${keystore}:tomcat":
-      ensure        => present,
-      password_file => $keystore_password_path,
-      certificate   => "${certs::ssl_build_dir}/${hostname}/${tomcat_cert_name}.crt",
-      private_key   => "${certs::ssl_build_dir}/${hostname}/${tomcat_cert_name}.key",
-      ca            => $ca_cert,
-    }
-
-    file { $truststore_password_path:
-      ensure    => file,
-      content   => $truststore_password,
-      owner     => 'root',
-      group     => $group,
-      mode      => '0440',
-      show_diff => false,
-    }
-
-    truststore { $truststore:
-      ensure        => present,
-      password_file => $truststore_password_path,
-      owner         => 'root',
-      group         => $group,
-      mode          => '0640',
-    }
-
-    truststore_certificate { "${truststore}:${alias}":
-      ensure        => present,
-      password_file => $truststore_password_path,
-      certificate   => $ca_cert,
-    }
-
-    truststore_certificate { "${truststore}:${artemis_alias}":
-      ensure        => present,
-      password_file => $truststore_password_path,
-      certificate   => $client_cert,
+      ca_key            => "${certs::ssl_build_dir}/${certs::default_ca_name}.key",
+      ca_cert            => "${certs::ssl_build_dir}/${certs::default_ca_name}.crt",
+      ca_key_password_file => $ca_key_password_file,
+      owner             => 'root',
+      group             => $group,
+      certificate       => "${certs::ssl_build_dir}/${hostname}/${tomcat_cert_name}.crt",
+      private_key       => "${certs::ssl_build_dir}/${hostname}/${tomcat_cert_name}.key",
+      client_cert       => $certs::foreman::client_cert,
+      require           => [Cert[$tomcat_cert_name], Ca[$certs::default_ca_name]]
     }
   }
 }
