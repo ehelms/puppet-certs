@@ -13,11 +13,13 @@ class certs::puppet (
   String $city = $certs::city,
   String $expiration = $certs::expiration,
   Stdlib::Absolutepath $ca_key_password_file = $certs::ca_key_password_file,
-  Stdlib::Absolutepath $server_ca = $certs::katello_server_ca_cert,
+  Stdlib::Absolutepath $server_ca = $certs::ca::server_ca_path,
   Stdlib::Absolutepath $pki_dir = $certs::pki_dir,
   String $owner = 'root',
   String $group = 'puppet',
 ) inherits certs {
+  include certs::config::deploy
+
   $puppet_client_cert_name = "${hostname}-puppet-client"
 
   # cert for authentication of puppetmaster against foreman

@@ -183,24 +183,13 @@ describe 'certs' do
       describe 'deploy certificates' do
         manifest = <<-PUPPET
           class { 'certs':
-            tar_file => '/root/foreman-proxy.example.com.tar.gz',
+            tar_file  => '/root/foreman-proxy.example.com.tar.gz',
+            generate  => false,
+            node_fqdn => 'foreman-proxy.example.com',
           }
         PUPPET
         # tar extraction is not idempotent
         it { apply_manifest(manifest, catch_failures: true) }
-      end
-
-      describe 'default and server ca certs match' do
-        it { expect(file('/etc/pki/katello/certs/katello-default-ca.crt').content).to eq(file('/etc/pki/katello/certs/katello-server-ca.crt').content) }
-      end
-
-      describe x509_certificate('/etc/pki/katello/certs/katello-default-ca.crt') do
-        it { should be_certificate }
-        it { should be_valid }
-        it { should have_purpose 'SSL server CA' }
-        its(:issuer) { should match_without_whitespace(/C = US, ST = North Carolina, L = Raleigh, O = Katello, OU = SomeOrgUnit, CN = #{fact('fqdn')}/) }
-        its(:subject) { should match_without_whitespace(/C = US, ST = North Carolina, L = Raleigh, O = Katello, OU = SomeOrgUnit, CN = #{fact('fqdn')}/) }
-        its(:keylength) { should be >= 4096 }
       end
     end
 
@@ -231,6 +220,7 @@ describe 'certs' do
           class { 'certs':
             generate => false,
             tar_file => '/root/foreman-proxy.example.com.tar.gz',
+            node_fqdn => 'foreman-proxy.example.com',
           }
         PUPPET
         # tar extraction is not idempotent
@@ -238,10 +228,10 @@ describe 'certs' do
       end
 
       describe 'default and server ca certs match' do
-        it { expect(file('/etc/pki/katello/certs/katello-default-ca.crt').content).not_to eq(file('/etc/pki/katello/certs/katello-server-ca.crt').content) }
+        it { expect(file('/root/ssl-build/katello-default-ca.crt').content).not_to eq(file('/root/ssl-build/katello-server-ca.crt').content) }
       end
 
-      describe x509_certificate('/etc/pki/katello/certs/katello-default-ca.crt') do
+      describe x509_certificate('/root/ssl-build/katello-default-ca.crt') do
         it { should be_certificate }
         it { should be_valid }
         it { should have_purpose 'SSL server CA' }
@@ -250,7 +240,7 @@ describe 'certs' do
         its(:keylength) { should be >= 4096 }
       end
 
-      describe x509_certificate('/etc/pki/katello/certs/katello-server-ca.crt') do
+      describe x509_certificate('/root/ssl-build/katello-server-ca.crt') do
         it { should be_certificate }
         it { should be_valid }
         it { should have_purpose 'SSL server CA' }

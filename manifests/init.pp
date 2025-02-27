@@ -110,17 +110,18 @@ class certs (
   $katello_default_ca_cert = "${pki_dir}/certs/${default_ca_name}.crt"
 
   if $tar_file {
-    certs::tar_extract { $tar_file:
+    class { 'certs::tar_extract':
+      path   => $tar_file,
       before => Class['certs::install'],
     }
   }
 
   contain certs::install
-  contain certs::config
+  contain certs::config::generate
   contain certs::ca
 
   Class['certs::install'] ->
-  Class['certs::config'] ->
+  Class['certs::config::generate'] ->
   Class['certs::ca']
 
   $default_ca = Ca[$default_ca_name]

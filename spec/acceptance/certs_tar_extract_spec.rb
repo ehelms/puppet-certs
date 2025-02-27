@@ -3,11 +3,10 @@ require 'spec_helper_acceptance'
 describe 'certs with tar archive' do
   before(:all) do
     on default, 'rm -rf /root/ssl-build'
+    on default, 'rm -rf /etc/pki/katello'
   end
 
   before(:context) do
-    apply_manifest('include certs', catch_failures: true)
-
     pp = <<-PUPPET
       class { 'certs':
         generate => true,

@@ -35,6 +35,9 @@ describe 'certs::foreman_proxy_content' do
       PUPPET
 
       apply_manifest(manifest, catch_failures: true)
+
+      on default, "rm -rf /root/ssl-build"
+      on default, "cd /root && tar -zxf foreman-proxy.example.com.tar.gz"
     end
 
     describe tar('/root/foreman-proxy.example.com.tar.gz') do
@@ -44,6 +47,15 @@ describe 'certs::foreman_proxy_content' do
 
     describe 'default and server ca certs match' do
       it { expect(file('/root/ssl-build/katello-default-ca.crt').content).to eq(file('/root/ssl-build/katello-server-ca.crt').content) }
+    end
+
+    describe x509_certificate('/root/ssl-build/foreman-proxy.example.com/foreman-proxy.example.com-apache.crt') do
+      it { should be_certificate }
+      it { should be_valid }
+      it { should have_purpose 'server' }
+      its(:issuer) { should match_without_whitespace(/C = US, ST = North Carolina, L = Raleigh, O = Katello, OU = SomeOrgUnit, CN = #{fact('fqdn')}/) }
+      its(:subject) { should match_without_whitespace(/C = US, ST = North Carolina, O = Katello, OU = SomeOrgUnit, CN = foreman-proxy.example.com/) }
+      its(:keylength) { should be >= 4096 }
     end
   end
 

@@ -63,6 +63,8 @@ class certs::apache (
   Stdlib::Absolutepath $ca_key_password_file = $certs::ca_key_password_file,
   String $group = $certs::group,
 ) inherits certs {
+  include certs::config::deploy
+
   $apache_cert_name = "${hostname}-apache"
   $apache_cert = "${pki_dir}/certs/katello-apache.crt"
   $apache_key  = "${pki_dir}/private/katello-apache.key"
@@ -131,6 +133,22 @@ class certs::apache (
       cert_group => $group,
       cert_mode  => '0440',
       require    => $require_cert,
+    }
+
+    file { $certs::katello_default_ca_cert:
+      ensure => file,
+      source => $certs::ca::default_ca_path,
+      owner  => 'root',
+      group  => 'root',
+      mode   => '0644',
+    }
+
+    file { $apache_ca_cert:
+      ensure => file,
+      source => $certs::ca::server_ca_path,
+      owner  => 'root',
+      group  => 'root',
+      mode   => '0644',
     }
   }
 }
